@@ -28,6 +28,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network :forwarded_port, guest: 8081, host: 4567
   config.vm.network :forwarded_port, guest: 50070, host: 56770
   config.vm.network :forwarded_port, guest: 50075, host: 56775
+  config.vm.network :forwarded_port, guest: 4040, host: 4040
 
   # If true, then any SSH connections made will enable agent forwarding.
   # Default value: false
@@ -37,6 +38,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # the path on the host to the actual folder. The second argument is
   # the path on the guest to mount the folder. And the optional third
   # argument is a set of non-required options.
-  # config.vm.synced_folder "./shared", "/shared"
+  config.vm.synced_folder "./shared", "/shared"
 
 end

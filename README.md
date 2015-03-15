@@ -27,7 +27,7 @@ Let us make sure everthing is running like we expect ...
   import com.uebercomputing.mailrecord._
   import com.uebercomputing.mailrecord.Implicits.mailRecordToMailRecordOps
 
-  val args = Array("--avroMailInput", "/opt/rpm1/enron/filemail.avro", "--hadoopConfPath", "hadoop-local.xml")
+  val args = Array("--avroMailInput", "../../data/filemail.avro", "--hadoopConfPath", "hadoop-local.xml")
   val config = CommandLineOptionsParser.getConfigOpt(args).get
   val recordsRdd = MailRecordAnalytic.getMailRecordsRdd(sc, config)
   ```
