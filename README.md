@@ -2,6 +2,9 @@
 ## Intro
 This project sets up a Vagrant VM with a local version of spark installed and a small slice of the Enron corpus.  It also features some nice tools to work with the corpus provided by Markus Dale!
 
+## Don't want to us a VM and already have spark installed?
+switch to the raw branch and go at it!
+
 ## Install software
 1. install Virtualbox (https://www.virtualbox.org/wiki/Downloads)
 2. install Vagrant (http://docs.vagrantup.com/v2/installation/index.html)
@@ -41,6 +44,14 @@ Let us make sure everthing is running like we expect ...
 
 7. if you see it return "40419", then you are ready to roll!
 8. if you really want to impress us, figure out who is the person that sent the most emails that had the term "fbi" in the body of the email...
+
+## Data
+We have a small dataset of 4 executives from Enron:
+
+1. Kenneth Lay
+2. Jeffrey Skilling
+3. Greg Whalley
+4. Vincent Kaminski
 
 ## Thanks to
 Markus Dale for providing some sweet tools to work with the corpus and advice on setting up the envrionment! (https://github.com/medale/spark-mail)
