@@ -2,9 +2,6 @@
 ## Intro
 This project sets up a Vagrant VM with a local version of spark installed and a small slice of the Enron corpus.  It also features some nice tools to work with the corpus provided by Markus Dale!
 
-## Don't want to use a VM and have Linux?
-check out https://github.com/tetra-concepts-llc/spark-training and go at it!
-
 ## Install software
 1. install Virtualbox (https://www.virtualbox.org/wiki/Downloads)
 2. install Vagrant (http://docs.vagrantup.com/v2/installation/index.html)
