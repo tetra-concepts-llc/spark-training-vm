@@ -1,43 +1,143 @@
 # -*- mode: ruby -*-
-# vi: set ft=ruby :
+# # vi: set ft=ruby :
 
-# Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
-VAGRANTFILE_API_VERSION = "2"
+require 'fileutils'
 
-Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  # All Vagrant configuration is done here. The most common configuration
-  # options are documented and commented below. For a complete reference,
-  # please see the online documentation at vagrantup.com.
+Vagrant.require_version ">= 1.6.0"
 
-  config.vm.host_name = "tetra-spark-training"
-  config.vm.provider :virtualbox do |vb|
-      vb.name = "tetra-spark-training"
+CLOUD_CONFIG_PATH = File.join(File.dirname(__FILE__), "user-data")
+CONFIG = File.join(File.dirname(__FILE__), "config.rb")
+
+# Defaults for config options defined in CONFIG
+$num_instances = 1
+$instance_name_prefix = "core"
+$update_channel = "alpha"
+$image_version = "current"
+$enable_serial_logging = false
+$share_home = false
+$vm_gui = false
+$vm_memory = 1024
+$vm_cpus = 1
+$shared_folders = {}
+$forwarded_ports = {}
+
+# Attempt to apply the deprecated environment variable NUM_INSTANCES to
+# $num_instances while allowing config.rb to override it
+if ENV["NUM_INSTANCES"].to_i > 0 && ENV["NUM_INSTANCES"]
+  $num_instances = ENV["NUM_INSTANCES"].to_i
+end
+
+if File.exist?(CONFIG)
+  require CONFIG
+end
+
+# Use old vb_xxx config variables when set
+def vm_gui
+  $vb_gui.nil? ? $vm_gui : $vb_gui
+end
+
+def vm_memory
+  $vb_memory.nil? ? $vm_memory : $vb_memory
+end
+
+def vm_cpus
+  $vb_cpus.nil? ? $vm_cpus : $vb_cpus
+end
+
+Vagrant.configure("2") do |config|
+  # always use Vagrants insecure key
+  config.ssh.insert_key = false
+
+  config.vm.box = "coreos-%s" % $update_channel
+  if $image_version != "current"
+      config.vm.box_version = $image_version
+  end
+  config.vm.box_url = "http://%s.release.core-os.net/amd64-usr/%s/coreos_production_vagrant.json" % [$update_channel, $image_version]
+
+  ["vmware_fusion", "vmware_workstation"].each do |vmware|
+    config.vm.provider vmware do |v, override|
+      override.vm.box_url = "http://%s.release.core-os.net/amd64-usr/%s/coreos_production_vagrant_vmware_fusion.json" % [$update_channel, $image_version]
+    end
   end
 
-  # Every Vagrant virtual environment requires a box to build off of.
-  config.vm.box = "kevin-faro/tetra-spark"
+  config.vm.provider :virtualbox do |v|
+    # On VirtualBox, we don't have guest additions or a functional vboxsf
+    # in CoreOS, so tell Vagrant that so it can be smarter.
+    v.check_guest_additions = false
+    v.functional_vboxsf     = false
+  end
 
-  # The url from where the 'config.vm.box' box will be fetched if it
-  # doesn't already exist on the user's system.
-  config.vm.box_url = "https://atlas.hashicorp.com/kevin-faro/boxes/tetra-spark/versions/0.0.2/providers/virtualbox.box"
+  # plugin conflict
+  if Vagrant.has_plugin?("vagrant-vbguest") then
+    config.vbguest.auto_update = false
+  end
 
-  # Create a forwarded port mapping which allows access to a specific port
-  # within the machine from a port on the host machine. In the example below,
-  # accessing "localhost:8080" will access port 80 on the guest machine.
-  config.vm.network :forwarded_port, guest: 8080, host: 3456
-  config.vm.network :forwarded_port, guest: 8081, host: 4567
-  config.vm.network :forwarded_port, guest: 50070, host: 56770
-  config.vm.network :forwarded_port, guest: 50075, host: 56775
-  config.vm.network :forwarded_port, guest: 4040, host: 4040
+  (1..$num_instances).each do |i|
+    config.vm.define vm_name = "%s-%02d" % [$instance_name_prefix, i] do |config|
+      config.vm.hostname = vm_name
 
-  # If true, then any SSH connections made will enable agent forwarding.
-  # Default value: false
-  config.ssh.forward_agent = true
+      if $enable_serial_logging
+        logdir = File.join(File.dirname(__FILE__), "log")
+        FileUtils.mkdir_p(logdir)
 
-  # Share an additional folder to the guest VM. The first argument is
-  # the path on the host to the actual folder. The second argument is
-  # the path on the guest to mount the folder. And the optional third
-  # argument is a set of non-required options.
-  #config.vm.synced_folder "./shared", "/shared"
+        serialFile = File.join(logdir, "%s-serial.txt" % vm_name)
+        FileUtils.touch(serialFile)
 
+        ["vmware_fusion", "vmware_workstation"].each do |vmware|
+          config.vm.provider vmware do |v, override|
+            v.vmx["serial0.present"] = "TRUE"
+            v.vmx["serial0.fileType"] = "file"
+            v.vmx["serial0.fileName"] = serialFile
+            v.vmx["serial0.tryNoRxLoss"] = "FALSE"
+          end
+        end
+
+        config.vm.provider :virtualbox do |vb, override|
+          vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+          vb.customize ["modifyvm", :id, "--uartmode1", serialFile]
+        end
+      end
+
+      if $expose_docker_tcp
+        config.vm.network "forwarded_port", guest: 2375, host: ($expose_docker_tcp + i - 1), auto_correct: true
+      end
+
+      $forwarded_ports.each do |guest, host|
+        config.vm.network "forwarded_port", guest: guest, host: host, auto_correct: true
+      end
+
+      ["vmware_fusion", "vmware_workstation"].each do |vmware|
+        config.vm.provider vmware do |v|
+          v.gui = vm_gui
+          v.vmx['memsize'] = vm_memory
+          v.vmx['numvcpus'] = vm_cpus
+        end
+      end
+
+      config.vm.provider :virtualbox do |vb|
+        vb.gui = vm_gui
+        vb.memory = vm_memory
+        vb.cpus = vm_cpus
+      end
+
+      ip = "172.17.8.#{i+100}"
+      config.vm.network :private_network, ip: ip
+
+      # Uncomment below to enable NFS for sharing the host machine into the coreos-vagrant VM.
+      #config.vm.synced_folder "/data", "/home/core/share", id: "core", :nfs => true, :mount_options => ['nolock,vers=3,udp']
+      $shared_folders.each_with_index do |(host_folder, guest_folder), index|
+        config.vm.synced_folder host_folder.to_s, guest_folder.to_s, id: "core-share%02d" % index, nfs: true, mount_options: ['nolock,vers=3,udp']
+      end
+
+      if $share_home
+        config.vm.synced_folder ENV['HOME'], ENV['HOME'], id: "home", :nfs => true, :mount_options => ['nolock,vers=3,udp']
+      end
+
+      if File.exist?(CLOUD_CONFIG_PATH)
+        config.vm.provision :file, :source => "#{CLOUD_CONFIG_PATH}", :destination => "/tmp/vagrantfile-user-data"
+        config.vm.provision :shell, :inline => "mv /tmp/vagrantfile-user-data /var/lib/coreos-vagrant/", :privileged => true
+      end
+
+    end
+  end
 end
