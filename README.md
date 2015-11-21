@@ -20,7 +20,7 @@ Let us make sure everything is running like we expect ...
 3. type the following into the spark shell
 
   ``` 
-  val sentences = sc.textFile("/data/sentences.txt.gz")
+  val sentences = sc.textFile("data/sentences.txt.gz")
   sentences.count
   ```
   
@@ -29,8 +29,8 @@ Let us make sure everything is running like we expect ...
 ## Data
 We have two data files:
 
-1. /data/enron_small.json.gz
-2. /data/sentences.txt.gz
+1. data/enron_small.json.gz
+2. data/sentences.txt.gz
 
 ## Thanks to
 SequenceIQ  (https://github.com/sequenceiq/docker-spark)
