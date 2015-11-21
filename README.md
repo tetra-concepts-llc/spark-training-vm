@@ -2,6 +2,10 @@
 Welcome to the Tetra Concepts LLC Spark Meetup training!
 
 ## Choices
+
+### Install docker
+http://docs.docker.com/mac/started/
+
 ### I already have docker installed and trust the container you built
 
   ```
