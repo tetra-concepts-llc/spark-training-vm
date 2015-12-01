@@ -9,8 +9,8 @@ http://docs.docker.com/mac/started/
 ### I already have docker installed and trust the container you built
 
   ```
-  docker pull kevinfaro/tetra_spark
-  docker run -it --rm tetra_spark
+  sudo docker pull kevinfaro/tetra_spark
+  sudo docker run -it --rm kevinfaro/tetra_spark
   ```
 
 now lets check to make sure it is all wired up right - type into the spark shell:
