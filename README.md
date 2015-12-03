@@ -16,7 +16,7 @@ from the project directory...
 Let us make sure everything is running like we expect ...
 
 1. docker pull kevinfaro/tetra_spark
-2. docker run -it --rm tetra_spark
+2. docker run -it --rm kevinfaro/tetra_spark
 3. type the following into the spark shell
 
   ``` 
